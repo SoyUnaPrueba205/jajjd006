@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador Domótico</title>
+  <style>
+    :root {
+      --bg-panel: rgba(15, 15, 15, 0.75);
+      --border-panel: rgba(255, 255, 255, 0.08);
+      --btn-bg1: #2b2b2b;
+      --btn-bg2: #1c1c1c;
+      --btn-border: rgba(255, 255, 255, 0.10);
+      --btn-text: #e6e6e6;
+      --btn-text-dim: #bfbfbf;
+      --btn-hover: #3a3a3a;
+      --shadow-outer: 0 6px 24px rgba(0,0,0,0.45);
+      --shadow-inner: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    body { margin: 0; overflow: hidden; background: #111; }
+
+    /* Barra superior centrada */
+    #controls {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: var(--shadow-outer);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 10;
+    }
+
+    /* Contenedor flexible con salto de línea, centrado */
+    #controls .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      max-width: 860px;
+    }
+
+    /* Botón estilo panel oscuro */
+    .ui-button {
+      appearance: none;
+      background: linear-gradient(180deg, var(--btn-bg1), var(--btn-bg2));
+      color: var(--btn-text);
+      border: 1px solid var(--btn-border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      font-size: 12px;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      cursor: pointer;
+      box-shadow: var(--shadow-inner), 0 2px 10px rgba(0,0,0,.35);
+      transition: background .15s ease, transform .06s ease, box-shadow .2s ease;
+    }
+    .ui-button:hover { background: linear-gradient(180deg, var(--btn-hover), var(--btn-bg2)); }
+    .ui-button:active { transform: translateY(1px); box-shadow: var(--shadow-inner), 0 1px 6px rgba(0,0,0,.45); }
+
+    /* Agrupadores (luces/cortinas) para que parezcan módulos dentro de la barra */
+    .module {
+      display: flex;
+      gap: 10px;
+      padding: 6px 8px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border-panel);
+      border-radius: 10px;
+    }
+
+    /* HUD de coordenadas */
+    #hud-curtain-front {
+      position: fixed;
+      left: 14px;
+      bottom: 14px;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      color: #e8e8e8;
+      font: 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      letter-spacing: .2px;
+      padding: 6px 10px;
+      z-index: 20;
+      pointer-events: none;
+      user-select: text;
+      min-width: 210px;
+    }
+
+    .slider-col {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--btn-text-dim);
+      font: 11px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    .slider-col input[type="range"] {
+      width: 120px;
+    }
+
+    /* Estilo para el rectángulo de chat */
+    #chat-box {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border-panel);
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      box-shadow: var(--shadow-outer);
+      z-index: 20;
+    }
+
+    #chat-input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid var(--border-panel);
+      border-radius: 8px;
+      background: #222;
+      color: var(--btn-text);
+      font-size: 14px;
+      outline: none;
+    }
+
+    #chat-send {
+      margin-left: 10px;
+      padding: 10px 20px;
+      background: var(--btn-bg1);
+      color: var(--btn-text);
+      border: 1px solid var(--btn-border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    #chat-send:hover {
+      background: var(--btn-hover);
+    }
+
+    /* Estilo para el área de respuesta */
+    #chat-response {
+      position: fixed;
+      bottom: 60px;
+      left: 0;
+      width: 100%;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #e6e6e6;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <div class="controls-row">
+      <button id="btnPortonDelantero" class="ui-button">Abrir portón delantero</button>
+      <button id="btnPortonTrasero" class="ui-button">Abrir portón trasero</button>
+      <button id="btnPuerta" class="ui-button">Abrir puerta</button>
+      <button id="btnPuertaCuarto" class="ui-button">Abrir puerta cuarto</button>
+      <button id="btnPuertaBaño" class="ui-button">Abrir puerta baño</button>
+      <div id="lights-controls" class="module"></div>
+      <div id="curtains-controls" class="module">
+        <button id="btnCortinaDelantera" class="ui-button">Cerrar cortina delantera</button>
+        <button id="btnCortinaTrasera" class="ui-button">Cerrar cortina trasera</button>
+      </div>
+      <div id="curtain-extra" class="module">
+  <button id="btnCortinaExtra" class="ui-button">Cerrar cortina cocina</button>
+</div>
+    </div>
+  </div>
+
+
+
+  <!-- ✅ Usamos módulos ES -->
+  <script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+    "three/examples/jsm/": "https://unpkg.com/three@0.150.1/examples/jsm/"
+  }
+}
+  </script>
+  <script type="module" src="config.js"></script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
